@@ -43,7 +43,7 @@ module.exports.createUser = (req, res) => {
   .catch(err => {
     console.error(err);
     if (err.name === 'ValidationError') {
-      res.status(BAD_REQUEST).send( {message: err.message});
+      res.status(BAD_REQUEST).send( {message: 'Invalid data'});
     } else {
       res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
     }
