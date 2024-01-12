@@ -2,8 +2,9 @@ const { PORT = 3001 } = process.env;
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const routes = require('./routes/index');
 const helmet = require('helmet');
+const routes = require('./routes/index');
+
 
 const app = express();
 app.use(helmet());
