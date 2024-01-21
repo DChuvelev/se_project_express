@@ -1,4 +1,4 @@
-const {BAD_REQUEST, NOT_FOUND, INTERNAL_SERVER_ERROR} = require('../utils/errors');
+const {BAD_REQUEST, NOT_FOUND, FORBIDDEN, INTERNAL_SERVER_ERROR} = require('../utils/errors');
 const ClothingItem = require('../models/clothingitems');
 
 module.exports.getItems = (req, res) => {
@@ -14,11 +14,17 @@ module.exports.getItems = (req, res) => {
 }
 
 module.exports.deleteItemById = (req, res) => {
-  ClothingItem.findByIdAndRemove(req.params.id)
+  ClothingItem.findById(req.params.id)
   .orFail()
-  .then(item => {
-    res.send(item);
-    console.log('Item deleted');
+  .then(itemToCheckOwnership => {
+    if (itemToCheckOwnership.owner.toString() !== req.user._id) {
+      return Promise.reject(new Error());
+    }
+    return ClothingItem.findByIdAndDelete(req.params.id)
+    .then(itemToDelete => {
+      res.send(itemToDelete);
+      console.log('Item deleted');
+    });
   })
   .catch((err) => {
     console.error(err.name);
@@ -28,6 +34,10 @@ module.exports.deleteItemById = (req, res) => {
     }
     if (err.name === 'CastError') {
       res.status(BAD_REQUEST).send( {message: `Id '${req.params.id}' is invalid`});
+      return;
+    }
+    if (err.name === 'Error') {
+      res.status(FORBIDDEN).send( {message: "Unauthorized delete"});
       return;
     }
     res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
@@ -41,7 +51,7 @@ module.exports.createItem = (req, res) => {
     console.log('Item created');
   })
   .catch((err) => {
-    console.error(err);
+    console.log(err.name);
     if (err.name === 'ValidationError') {
       res.status(BAD_REQUEST).send( {message: 'Invalid data passed for creating an item'});
     } else {
@@ -61,7 +71,7 @@ module.exports.likeItem = (req, res) => {
     console.log('Added like');
   })
   .catch((err) => {
-    console.error(err);
+    console.log(err.name);
     if (err.name === 'CastError') {
       res.status(BAD_REQUEST).send( {message: `Id '${req.params.id}' is invalid`});
       return;
@@ -85,7 +95,7 @@ module.exports.unlikeItem = (req, res) => {
     console.log('Removed like');
   })
   .catch((err) => {
-    console.error(err);
+    console.log(err.name);
     if (err.name === 'CastError') {
       res.status(BAD_REQUEST).send( {message: `Id '${req.params.id}' is invalid`});
       return;
