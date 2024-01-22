@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/users');
-const {BAD_REQUEST, NOT_FOUND, CONFLICT, INTERNAL_SERVER_ERROR} = require('../utils/errors');
+const {UAUTHORIZED, BAD_REQUEST, NOT_FOUND, CONFLICT, INTERNAL_SERVER_ERROR} = require('../utils/errors');
 const {JWT_SECRET} = require('../utils/config');
 
 module.exports.getUsers = (req, res) => {
@@ -69,20 +69,12 @@ module.exports.createUser = (req, res) => {
   })
   .catch(err => {
     console.error(err.name, '|', err.message);
-    if (err.name === 'Error') {
-      res.status(BAD_REQUEST).send( {message: 'Invalid data'});
-      return;
-    }
     if (err.name === 'ValidationError') {
       res.status(BAD_REQUEST).send( {message: 'Invalid data'});
       return;
     }
-    if (err.name === 'MongoServerError') {
-      if (err.message.startsWith('E11000')) {
-        res.status(CONFLICT).send( {message: 'User already exists'});
-        return;
-      }
-      res.status(BAD_REQUEST).send( {message: 'Invalid data'});
+    if (err.name === 'MongoServerError' || err.code === 11000) {
+      res.status(CONFLICT).send( {message: 'User already exists'});
       return;
     }
     res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
@@ -121,6 +113,14 @@ module.exports.login = (req, res) => {
   })
   .catch(err => {
     console.error('Error:', err.message);
-    res.status(BAD_REQUEST).send( {message: 'Invalid user data'} );
+    if (err.message === 'Incorrect username or password') {
+      res.status(UAUTHORIZED).send( {message: err.message});
+      return;
+    }
+    if (err.message === 'Invalid data') {
+      res.status(BAD_REQUEST).send( {message: err.message});
+      return;
+    }
+    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error'} );
   });
 }

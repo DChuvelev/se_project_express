@@ -18,7 +18,7 @@ module.exports.deleteItemById = (req, res) => {
   .orFail()
   .then(itemToCheckOwnership => {
     if (itemToCheckOwnership.owner.toString() !== req.user._id) {
-      return Promise.reject(new Error());
+      return Promise.reject(new Error('Forbidden'));
     }
     return ClothingItem.findByIdAndDelete(req.params.id)
     .then(itemToDelete => {
@@ -36,7 +36,7 @@ module.exports.deleteItemById = (req, res) => {
       res.status(BAD_REQUEST).send( {message: `Id '${req.params.id}' is invalid`});
       return;
     }
-    if (err.name === 'Error') {
+    if (err.name === 'Error' && err.message === 'Forbidden') {
       res.status(FORBIDDEN).send( {message: "Unauthorized delete"});
       return;
     }
