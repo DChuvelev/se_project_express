@@ -109,7 +109,7 @@ module.exports.login = (req, res) => {
   .then(user => {
     console.log('Successful user login:', user.name);
     const token = jwt.sign( {_id: user._id}, JWT_SECRET, {expiresIn: "7d"} );
-    res.send( {token} );
+    res.send( {token, name: user.name, avatar: user.avatar, email: user.email, _id: user._id} );
   })
   .catch(err => {
     console.error('Error:', err.message);
