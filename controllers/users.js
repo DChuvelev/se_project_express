@@ -1,22 +1,22 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/users');
-const {UAUTHORIZED, BAD_REQUEST, NOT_FOUND, CONFLICT, INTERNAL_SERVER_ERROR} = require('../utils/errors');
+const UnauthorizedError = require('../utils/errors/UnauthorizedError');
+const BadRequestError = require('../utils/errors/BadRequestError');
+const NotFoundError = require('../utils/errors/NotFoundError');
+const ConflictError = require('../utils/errors/ConflictError');
 const {JWT_SECRET} = require('../utils/config');
 
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
   .then((users) => {
     console.log('Get all users');
     res.send( {data: users} );
   })
-  .catch(err => {
-    console.error(err);
-    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'})
-  });
+  .catch(next);
 }
 
-module.exports.getUserById = (req, res) => {
+module.exports.getUserById = (req, res, next) => {
   User.findById(req.params.id)
   .orFail()
   .then(user => {
@@ -26,18 +26,18 @@ module.exports.getUserById = (req, res) => {
   .catch(err => {
     console.error(err.name);
     if (err.name === 'CastError') {
-      res.status(BAD_REQUEST).send( {message: `The id: '${req.params.id}' is invalid`});
+      next(new BadRequestError(`The id: '${req.params.id}' is invalid`));
       return;
     }
     if (err.name === 'DocumentNotFoundError') {
-      res.status(NOT_FOUND).send( {message: `There's no user with id: ${req.params.id}`});
+      next(new NotFoundError(`There's no user with id: ${req.params.id}`));
       return;
     }
-    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
+    next(err);
   });
 }
 
-module.exports.getCurrentUser = (req, res) => {
+module.exports.getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
   .orFail()
   .then(user => {
@@ -48,18 +48,18 @@ module.exports.getCurrentUser = (req, res) => {
   .catch(err => {
     console.error(err.name);
     if (err.name === 'CastError') {
-      res.status(BAD_REQUEST).send( {message: `The id: '${req.user._id}' is invalid`});
+      next(new BadRequestError(`The id: '${req.user._id}' is invalid`));
       return;
     }
     if (err.name === 'DocumentNotFoundError') {
-      res.status(NOT_FOUND).send( {message: `There's no user with id: ${req.user._id}`});
+      next(new NotFoundError(`There's no user with id: ${req.user._id}`));
       return;
     }
-    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
+    next(err);
   });
 }
 
-module.exports.createUser = (req, res) => {
+module.exports.createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, 10)
   .then(hash => User.create({...req.body, password: hash}))
   .then(user => {
@@ -70,18 +70,18 @@ module.exports.createUser = (req, res) => {
   .catch(err => {
     console.error(err.name, '|', err.message);
     if (err.name === 'ValidationError') {
-      res.status(BAD_REQUEST).send( {message: 'Invalid data'});
+      next(new BadRequestError('Invalid data'));
       return;
     }
     if (err.name === 'MongoServerError' || err.code === 11000) {
-      res.status(CONFLICT).send( {message: 'User already exists'});
+      next(new ConflictError('User already exists'));
       return;
     }
-    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
+    next(err);
   });
 }
 
-module.exports.modifyCurrentUserData = (req, res) => {
+module.exports.modifyCurrentUserData = (req, res, next) => {
   const {name, avatar} = req.body;
   User.findByIdAndUpdate(req.user._id, { name, avatar }, { new: true, runValidators: true })
   .then(user => {
@@ -92,18 +92,18 @@ module.exports.modifyCurrentUserData = (req, res) => {
   .catch(err => {
     console.error(err.name);
     if (err.name === 'DocumentNotFoundError') {
-      res.status(NOT_FOUND).send( {message: `There's no user with id: ${req.user._id}`});
+      next(new NotFoundError(`There's no user with id: ${req.user._id}`));
       return;
     }
     if (err.name === 'ValidationError') {
-      res.status(BAD_REQUEST).send( {message: 'Invalid data'});
+      next(new BadRequestError('Invalid data'));
       return;
     }
-    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error. Try later'});
+    next(err);
   })
 }
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   console.log("Login");
   User.findUserByCredentials(req.body.email, req.body.password)
   .then(user => {
@@ -114,13 +114,13 @@ module.exports.login = (req, res) => {
   .catch(err => {
     console.error('Error:', err.message);
     if (err.message === 'Incorrect username or password') {
-      res.status(UAUTHORIZED).send( {message: err.message});
+      next(new UnauthorizedError(err.message));
       return;
     }
     if (err.message === 'Invalid data') {
-      res.status(BAD_REQUEST).send( {message: err.message});
+      next(new BadRequestError(err.message));
       return;
     }
-    res.status(INTERNAL_SERVER_ERROR).send( {message: 'Server error'} );
+    next(err);
   });
 }

@@ -6,6 +6,11 @@ const bodyParser = require('body-parser');
 const helmet = require('helmet');
 const routes = require('./routes/index');
 const {login, createUser} = require('./controllers/users');
+const { errors } = require('celebrate');
+const validator = require('validator');
+const { validateCreateUserData, validateLoginData } = require('./middleware/validation');
+const { requestLogger, errorLogger } = require('./middleware/logger');
+
 
 
 const app = express();
@@ -17,9 +22,22 @@ mongoose.connect('mongodb://127.0.0.1:27017/wtwr_db');
 
 app.use(bodyParser.json());
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.use(requestLogger);
+app.post('/signin', validateLoginData, login);
+app.post('/signup', validateCreateUserData, createUser);
 app.use('/', routes);
+
+app.use(errorLogger);
+
+app.use(errors());
+
+app.use((err, req, res, next) => {
+  console.log(`${err.message}. Error status: ${err.status}`);
+  const {status = 500, message} = err;
+  res.status(status).send({
+    message: status === 500 ? 'Internal server error' : message
+  });
+})
 
 app.listen(PORT, () => {
   console.log(`App listening to port ${PORT}`);
