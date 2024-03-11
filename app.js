@@ -11,7 +11,6 @@ const { errors } = require('celebrate');
 const validator = require('validator');
 const { validateCreateUserData, validateLoginData } = require('./middleware/validation');
 const { requestLogger, errorLogger } = require('./middleware/logger');
-const {JWT_SECRET} = require('./utils/config')
 
 const app = express();
 app.use(helmet());
@@ -23,6 +22,13 @@ mongoose.connect('mongodb://127.0.0.1:27017/wtwr_db');
 app.use(bodyParser.json());
 
 app.use(requestLogger);
+
+app.get('/crash-test', () => {
+  setTimeout(() => {
+    throw new Error('Server will crash now');
+  }, 0);
+});
+
 app.post('/signin', validateLoginData, login);
 app.post('/signup', validateCreateUserData, createUser);
 app.use('/', routes);
