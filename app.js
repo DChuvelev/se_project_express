@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { PORT = 3001 } = process.env;
 const express = require('express');
 const cors = require('cors');
@@ -10,14 +11,13 @@ const { errors } = require('celebrate');
 const validator = require('validator');
 const { validateCreateUserData, validateLoginData } = require('./middleware/validation');
 const { requestLogger, errorLogger } = require('./middleware/logger');
-
-
+const {JWT_SECRET} = require('./utils/config')
 
 const app = express();
 app.use(helmet());
 app.use(cors());
 
-console.log('Hi, everyone!');
+console.log(`The app is runnung in ${process.env.NODE_ENV} mode.`);
 mongoose.connect('mongodb://127.0.0.1:27017/wtwr_db');
 
 app.use(bodyParser.json());
