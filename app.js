@@ -1,14 +1,14 @@
 require('dotenv').config();
+
 const { PORT = 3001 } = process.env;
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const helmet = require('helmet');
+const { errors } = require('celebrate');
 const routes = require('./routes/index');
 const {login, createUser} = require('./controllers/users');
-const { errors } = require('celebrate');
-const validator = require('validator');
 const { validateCreateUserData, validateLoginData } = require('./middleware/validation');
 const { requestLogger, errorLogger } = require('./middleware/logger');
 

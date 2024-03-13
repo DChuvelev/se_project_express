@@ -1,4 +1,4 @@
-const { Joi, celebrate, Segments } = require('celebrate');
+const { Joi, celebrate } = require('celebrate');
 const validator = require('validator');
 
 const validateUrl = (value, helpers) => {
@@ -6,10 +6,9 @@ const validateUrl = (value, helpers) => {
   if (validator.isURL(value)) {
     console.log('URL VALIDATION - success!!!');
     return value;
-  } else {
-    console.log('URL VALIDATION - fail!!!');
-    return helpers.error('string.uri');
   }
+  console.log('URL VALIDATION - fail!!!');
+  return helpers.error('string.uri');
 }
 module.exports.validateCreateItemData = (req, res, next) => {
   celebrate({
@@ -47,6 +46,22 @@ module.exports.validateCreateUserData = (req, res, next) => {
       }),
       email: Joi.string().required().email().messages({
         'string.email': "Email not valid"
+      })
+    })
+  })(req, res, next);
+}
+
+module.exports.validateModifyUserData = (req, res, next) => {
+  celebrate({
+    body: Joi.object().keys({
+      name: Joi.string().required().min(2).max(30).messages({
+        'string.min': "Name should be at least 2 characters long",
+        'string.max': "Name should be no longer then 30 characters",
+        'string.empty': "The 'Name' field is empty"
+      }),
+      avatar: Joi.string().required().custom(validateUrl).messages({
+        'string.empty': "No avatar Url specified",
+        'string.uri': "Invalid avatar Url specified"
       })
     })
   })(req, res, next);

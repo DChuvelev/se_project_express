@@ -7,36 +7,6 @@ const NotFoundError = require('../utils/errors/NotFoundError');
 const ConflictError = require('../utils/errors/ConflictError');
 const {JWT_SECRET} = require('../utils/config');
 
-module.exports.getUsers = (req, res, next) => {
-  User.find({})
-  .then((users) => {
-    console.log('Get all users');
-    res.send( {data: users} );
-  })
-  .catch(next);
-}
-
-module.exports.getUserById = (req, res, next) => {
-  User.findById(req.params.id)
-  .orFail()
-  .then(user => {
-    res.send(user);
-    console.log(`User ${user.name} found`);
-  })
-  .catch(err => {
-    console.error(err.name);
-    if (err.name === 'CastError') {
-      next(new BadRequestError(`The id: '${req.params.id}' is invalid`));
-      return;
-    }
-    if (err.name === 'DocumentNotFoundError') {
-      next(new NotFoundError(`There's no user with id: ${req.params.id}`));
-      return;
-    }
-    next(err);
-  });
-}
-
 module.exports.getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
   .orFail()
